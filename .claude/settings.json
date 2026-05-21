@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Google-Drive__list_recent_files",
+      "mcp__Google-Drive__read_file_content",
+      "mcp__Google-Drive__search_files",
+      "mcp__Google-Drive__get_file_metadata",
+      "mcp__Google-Drive__get_file_permissions",
+      "mcp__Google-Drive__download_file_content",
+      "mcp__Google-Drive__create_file",
+      "mcp__Google-Drive__copy_file"
+    ]
+  }
+}
