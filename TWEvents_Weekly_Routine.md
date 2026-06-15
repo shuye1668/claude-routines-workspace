@@ -124,6 +124,10 @@ K:Notes L:Updated
 
 ### Step 3.5：Gmail 收件夾掃描（非公開法人場次 / 券商邀約）★
 用 Gmail 連接器搜尋近期通知信（建議 newer_than:10d）：
+- **【每週必查】** 掃描當週收件匣中標題含「永豐金證券約訪行程」的信件並讀取內文：
+  `subject:"永豐金證券約訪行程" in:inbox newer_than:7d`
+  （該信通常由 researchservice@sinopac.com 每週寄出整批台股/海外約訪行程；
+  逐筆套用下方「券商約訪名單比對規則」）
 - `法說會 OR 法人說明會 OR 法人座談 OR 業績說明會 newer_than:10d`
 - `(受邀 OR 邀請 OR invitation) (法說 OR conference OR investor OR roadshow) newer_than:10d`
 - `(NDR OR "non-deal roadshow" OR 一對一 OR 閉門 OR 僅限法人) newer_than:10d`
