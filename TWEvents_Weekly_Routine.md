@@ -158,7 +158,7 @@ Notes=「依法定期限推估，未見正式公告」）。金融股一律標�
 ### Step 6：建立週報 Gmail 草稿（不直接寄）
 用 Gmail 連接器 **建立草稿**（create_draft，不是直接寄出）：
 - 收件人：juliahsu13@gmail.com、sunbeamichelle@gmail.com
-- 主旨：`[TWSE-AUTOSEND] 台股事件雷達週報 {YYYY-MM-DD}`（**無 emoji**）
+- 主旨：`[TWSE-AUTOSEND] 台股事件週報 {YYYY-MM-DD}`（**無 emoji**；報名稱一律「台股事件週報」，不用「雷達」字樣）
 - 內文（HTML，inline CSS，繁中，**無 emoji**）區塊順序：
   1. 標題 + 執行時間 + 本週當令事件型態
   2. ═══ 概況 ═══（校正前/後 row 數、新增/微調/大幅變更/法定推估/Gmail場次/待公告/查無/清理）
