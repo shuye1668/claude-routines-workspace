@@ -1,0 +1,5 @@
+# Captured snapshots / quotes are data output, not source — don't commit them.
+output/
+snapshots/
+*.pyc
+__pycache__/

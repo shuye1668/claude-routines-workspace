@@ -1,0 +1,32 @@
+{
+  "chart": {
+    "result": [
+      {
+        "meta": {
+          "currency": "TWD",
+          "symbol": "2393.TW",
+          "exchangeName": "TAI",
+          "fullExchangeName": "Taiwan",
+          "exchangeTimezoneName": "Asia/Taipei",
+          "gmtoffset": 28800,
+          "regularMarketPrice": 512.0,
+          "dataGranularity": "1m",
+          "range": "1d"
+        },
+        "timestamp": [1778115600, 1778115660, 1778115720, 1778115780, 1778115840, 1778115900],
+        "indicators": {
+          "quote": [
+            {
+              "open":   [500.0, 501.0, 503.0, 502.0, null,  505.0],
+              "high":   [501.5, 502.5, 504.0, 503.5, null,  506.0],
+              "low":    [499.0, 500.5, 502.0, 501.0, null,  504.5],
+              "close":  [501.0, 502.0, 503.5, 502.5, null,  505.5],
+              "volume": [12000, 8000,  15000, 9000,  null,  11000]
+            }
+          ]
+        }
+      }
+    ],
+    "error": null
+  }
+}
