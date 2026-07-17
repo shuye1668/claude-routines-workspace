@@ -1,0 +1,6 @@
+# Python deps for the market-data routine tools.
+# The Claude Code web/remote environment already ships a Chromium build under
+# $PLAYWRIGHT_BROWSERS_PATH, so DO NOT run `playwright install` — lib/browser.py
+# points Playwright at the pre-installed binary.
+playwright>=1.40
+requests>=2.28
