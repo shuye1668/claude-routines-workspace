@@ -541,12 +541,17 @@ function setupSheet() {
   pool.autoResizeColumns(1, CFG.P_LAST);
 }
 
+// 整個專案只能有一個 onOpen，IBD 匯入的選單也掛在這裡
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('買進觀察')
     .addItem('立即更新', 'updateStockPool')
     .addSeparator()
-    .addItem('建立/重設觸發器', 'setupTriggers')
+    .addItem('立即匯入 IBD 買賣點', 'importIBDLevels')
+    .addItem('預覽 IBD 來源欄位（不寫入）', 'previewIBDSource')
+    .addSeparator()
+    .addItem('建立/重設觸發器（每日現價）', 'setupTriggers')
+    .addItem('建立/重設觸發器（每週六匯入）', 'setupWeeklyImportTrigger')
     .addItem('初始化表頭格式', 'setupSheet')
     .addItem('清除今日通知紀錄', 'resetNotifyMemory')
     .addToUi();
