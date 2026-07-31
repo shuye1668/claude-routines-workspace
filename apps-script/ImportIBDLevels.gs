@@ -9,6 +9,12 @@
  *   W 🟢積極入場    = 趨勢線近似
  * 寫回「進場價_database」的 C / D / E 三欄。
  *
+ * 【來源檔怎麼找】這份 CSV 每天從地端同步覆蓋，檔案 ID 可能每天都不一樣，
+ *   只有檔名固定，所以一律用「資料夾 + 檔名」找，不靠 ID：
+ *   排除垃圾桶裡的殘骸，同名有多份時取最後更新時間最新的那一份；
+ *   檔名被改過就退回關鍵字比對（含「總表」優先，不會誤抓「計算器」）。
+ *   來源檔超過 STALE_DAYS 天沒更新會在摘要與信件裡示警（地端同步壞掉的保險）。
+ *
  * 【欄位解析】以表頭關鍵字為主（Pivot／早期／積極、代號、名稱），
  *   找不到才退回固定位置 U/V/W。實際用到哪幾欄會寫進 Logger 與匯入摘要，
  *   也可以用選單「預覽 IBD 來源欄位」先確認再正式跑。
@@ -27,12 +33,17 @@
 
 /*** ============ 設定區 ============ ***/
 const IMPORT_CFG = {
-  // 來源檔（先用 FILE_ID，抓不到再用資料夾 + 檔名 / 關鍵字找）
-  FILE_ID: '1mEcTpzagoXwMMKSR8FY9kZC8TUQCwVIX',
+  // 來源檔：以「資料夾 + 檔名」為準。
+  // ※ 這份 CSV 每天從地端同步覆蓋，檔案 ID 可能會變，只有檔名固定，
+  //   所以絕對不要靠 ID 找檔。FILE_ID 只在你要臨時釘住某一份時才填。
   FOLDER_ID: '1P84FTFeXyhVl2MTBQ_-9tgLEhJD0tfKH',
   FILE_NAME: '📐 IBD買賣點總表（工具）.csv',
   FILE_KEYWORD: 'IBD買賣點總表',   // 檔名被改過時的模糊比對關鍵字
+  FILE_ID: '',                     // 一般留空
   CHARSET: 'UTF-8',
+
+  // 同步壞掉的保險：來源檔超過這天數沒更新就在摘要裡示警（0 = 不檢查）
+  STALE_DAYS: 3,
 
   // 表頭掃描範圍（前幾列裡面找表頭）
   HEADER_SCAN_ROWS: 10,
@@ -100,6 +111,12 @@ function doImportIBD_() {
 
     return {
       fileName: src.fileName,
+      fileId: src.fileId,
+      matchedBy: src.matchedBy,
+      candidates: src.candidates,
+      fileUpdated: src.updated,
+      ageDays: src.ageDays,
+      stale: src.stale,
       totalRows: src.grid.length,
       cols: cols,
       parsed: recs.list.length,
@@ -119,7 +136,8 @@ function doImportIBD_() {
 
 /*** ============ 讀來源檔 ============ ***/
 function readIBDSource_() {
-  const file = findIBDFile_();
+  const found = findIBDFile_();
+  const file = found.file;
   const mime = file.getMimeType();
   let grid;
 
@@ -134,37 +152,73 @@ function readIBDSource_() {
   }
 
   if (!grid || !grid.length) throw new Error('來源檔是空的：' + file.getName());
-  return { fileName: file.getName(), grid: grid };
+
+  const updated = file.getLastUpdated();
+  const ageDays = (new Date().getTime() - updated.getTime()) / 86400000;
+
+  return {
+    fileName: file.getName(),
+    fileId: file.getId(),
+    matchedBy: found.matchedBy,
+    candidates: found.candidates,
+    updated: Utilities.formatDate(updated, Session.getScriptTimeZone(), 'yyyy/MM/dd HH:mm'),
+    ageDays: ageDays,
+    stale: IMPORT_CFG.STALE_DAYS > 0 && ageDays > IMPORT_CFG.STALE_DAYS,
+    grid: grid
+  };
 }
 
+/**
+ * 找來源檔。
+ * 這份 CSV 每天從地端同步覆蓋，若同步是「刪除後重建」，檔案 ID 每天都會不一樣，
+ * 而且資料夾裡可能同時留著同名的舊檔。所以：
+ *   - 一律用檔名找，不靠 ID
+ *   - 排除垃圾桶裡的檔
+ *   - 同名有多份時，取「最後更新時間最新」的那一份
+ */
 function findIBDFile_() {
-  // 1) 直接用檔案 ID
+  // 只有手動釘住時才走 ID（IMPORT_CFG.FILE_ID 平常留空）
   if (IMPORT_CFG.FILE_ID) {
-    try { return DriveApp.getFileById(IMPORT_CFG.FILE_ID); } catch (e) { /* 落到下一步 */ }
+    try {
+      const pinned = DriveApp.getFileById(IMPORT_CFG.FILE_ID);
+      if (!pinned.isTrashed()) return { file: pinned, matchedBy: '指定 ID', candidates: 1 };
+    } catch (e) { /* 釘住的檔沒了就照常用檔名找 */ }
   }
 
   const folder = DriveApp.getFolderById(IMPORT_CFG.FOLDER_ID);
 
-  // 2) 資料夾內完全同名
-  const exact = folder.getFilesByName(IMPORT_CFG.FILE_NAME);
-  if (exact.hasNext()) return exact.next();
+  // 1) 資料夾內完全同名
+  const exact = collectFiles_(folder.getFilesByName(IMPORT_CFG.FILE_NAME));
+  if (exact.length) {
+    return { file: newestFile_(exact), matchedBy: '檔名', candidates: exact.length };
+  }
 
-  // 3) 檔名關鍵字模糊比對（檔名被改、emoji 有出入時的保險）
-  const it = folder.getFiles();
-  const hits = [];
+  // 2) 檔名關鍵字模糊比對（emoji 或全形括號有出入、檔名被改時的保險）
+  let hits = collectFiles_(folder.getFiles())
+    .filter(f => f.getName().indexOf(IMPORT_CFG.FILE_KEYWORD) !== -1);
+  if (hits.length) {
+    // 含「總表」的優先，避免抓到旁邊那份「計算器」
+    const better = hits.filter(f => f.getName().indexOf('總表') !== -1);
+    if (better.length) hits = better;
+    return { file: newestFile_(hits), matchedBy: '關鍵字', candidates: hits.length };
+  }
+
+  throw new Error('資料夾中找不到來源檔：' + IMPORT_CFG.FILE_NAME +
+                  '（資料夾 ' + IMPORT_CFG.FOLDER_ID + '）');
+}
+
+function collectFiles_(it) {
+  const out = [];
   while (it.hasNext()) {
     const f = it.next();
-    if (f.getName().indexOf(IMPORT_CFG.FILE_KEYWORD) !== -1) hits.push(f);
+    if (!f.isTrashed()) out.push(f);   // 同步重建時，舊檔可能還躺在垃圾桶
   }
-  if (hits.length === 1) return hits[0];
-  if (hits.length > 1) {
-    // 檔名同時含「總表」的優先，避免抓到「計算器」那份
-    const better = hits.filter(f => f.getName().indexOf('總表') !== -1);
-    if (better.length) return better[0];
-    return hits[0];
-  }
+  return out;
+}
 
-  throw new Error('資料夾中找不到來源檔：' + IMPORT_CFG.FILE_NAME);
+function newestFile_(files) {
+  return files.reduce((a, b) =>
+    a.getLastUpdated().getTime() >= b.getLastUpdated().getTime() ? a : b);
 }
 
 /*** ============ 欄位解析 ============ ***/
@@ -349,7 +403,11 @@ function previewIBDSource() {
   const recs = parseIBDRows_(src.grid, cols);
 
   const lines = [];
-  lines.push('來源檔：' + src.fileName);
+  lines.push('來源檔：' + src.fileName + '（比對方式：' + src.matchedBy +
+             (src.candidates > 1 ? '，同名 ' + src.candidates + ' 份取最新' : '') + '）');
+  lines.push('檔案 ID：' + src.fileId + '（每天同步會變，僅供對照）');
+  lines.push('來源檔更新於：' + src.updated + '（' + src.ageDays.toFixed(1) + ' 天前）' +
+             (src.stale ? '　⚠️ 疑似地端同步沒跑' : ''));
   lines.push('總列數：' + src.grid.length + '　表頭列：第 ' + (cols.headerRow + 1) + ' 列');
   lines.push('欄位對應（' + (cols.byHeader ? '依表頭關鍵字' : '⚠️ 退回固定位置 U/V/W') + '）：');
   lines.push('  代號 → ' + colLetter_(cols.code + 1) + '「' + oneLine_(cols.headerText.code) + '」');
@@ -405,6 +463,10 @@ function formatImportSummary_(s) {
   return [
     'IBD 匯入完成 ' + s.stamp,
     '來源：' + s.fileName + '（' + s.totalRows + ' 列，表頭第 ' + (c.headerRow + 1) + ' 列）',
+    '　檔案：' + s.fileId + '　來源檔更新於 ' + s.fileUpdated +
+      '（' + s.ageDays.toFixed(1) + ' 天前，比對方式：' + s.matchedBy +
+      (s.candidates > 1 ? '，同名 ' + s.candidates + ' 份取最新' : '') + '）' +
+      (s.stale ? ' ⚠️ 疑似地端同步沒跑' : ''),
     '欄位：代號=' + colLetter_(c.code + 1) + ' 名稱=' + colLetter_(c.name + 1) +
       ' 🔴=' + colLetter_(c.pivot + 1) + ' 🟡=' + colLetter_(c.early + 1) +
       ' 🟢=' + colLetter_(c.aggr + 1) + (c.byHeader ? '（依表頭）' : '（⚠️ 固定位置備援）'),
@@ -418,9 +480,18 @@ function formatImportSummary_(s) {
 
 function mailImportSummary_(s) {
   const c = s.cols;
-  const warn = c.byHeader ? '' :
+  let warn = c.byHeader ? '' :
     '<p style="color:#c00;">⚠️ 表頭關鍵字沒對到，這次是用固定位置 U/V/W 讀的，' +
     '請確認來源檔欄位有沒有搬動。</p>';
+  if (s.stale) {
+    warn += '<p style="color:#c00;">⚠️ 來源檔已經 ' + s.ageDays.toFixed(1) +
+            ' 天沒更新（' + s.fileUpdated + '），地端同步可能沒跑，' +
+            '這次匯入的是舊價位。</p>';
+  }
+  if (s.candidates > 1) {
+    warn += '<p style="color:#c60;">ℹ️ 資料夾裡有 ' + s.candidates +
+            ' 份同名檔案，已取最後更新時間最新的那一份。</p>';
+  }
 
   const html =
     '<div style="font-family:Arial,\'Microsoft JhengHei\',sans-serif;font-size:14px;">' +
@@ -428,6 +499,8 @@ function mailImportSummary_(s) {
     '<p style="color:#666;margin-top:0;">' + s.stamp + '</p>' + warn +
     '<table style="border-collapse:collapse;">' +
     tr_('來源檔', s.fileName + '（' + s.totalRows + ' 列，表頭第 ' + (c.headerRow + 1) + ' 列）') +
+    tr_('來源檔更新於', s.fileUpdated + '（' + s.ageDays.toFixed(1) + ' 天前）' +
+        '　比對方式：' + s.matchedBy) +
     tr_('欄位對應',
         '代號 ' + colLetter_(c.code + 1) + '｜名稱 ' + colLetter_(c.name + 1) +
         '｜🔴 ' + colLetter_(c.pivot + 1) + '｜🟡 ' + colLetter_(c.early + 1) +
