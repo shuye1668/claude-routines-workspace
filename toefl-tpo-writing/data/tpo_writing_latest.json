@@ -1,0 +1,177 @@
+{
+  "meta": {
+    "title": "TOEFL TPO Writing — latest tasks (TPO 66–75)",
+    "generated": "2026-07-31",
+    "scope": "The 10 most recent TPO sets (TPO 66–75). Each TPO writing section has two tasks: Task 1 = Integrated Writing (read a passage, hear a lecture that responds to it, then summarize the lecture and how it relates to the reading); Task 2 = Independent Writing (an agree/disagree or preference essay).",
+    "note_on_format": "The live TOEFL iBT replaced the Independent essay with a 'Writing for an Academic Discussion' task in July 2023. The numbered TPO practice sets (TPO N) are compiled from earlier administered exams and still pair an Integrated task with an Independent task; the newer Academic-Discussion prompts are published by prep sites as a separate series. Both are covered by the accompanying scraper.",
+    "fidelity": "Prompts and topics below were verified from public prep-site pages via web search. Task 1/Task 2 PROMPT wording is verbatim (high confidence). Reading-passage and lecture bodies are SUMMARIES, not verbatim transcripts — the source sites that host the full verbatim text (top.zhan.com / 小站, lingoleap, ETS, KMF) are blocked by this environment's outbound network policy, so full bodies must be pulled with the accompanying scraper from a network-unrestricted environment. Missing fields are marked null.",
+    "sources": [
+      "https://lingoleap.ai (per-task TPO writing sample pages; prompt text appears verbatim in page URLs/titles)",
+      "https://curio.classicenglish.com.tw (英漢對照 integrated-writing analyses, e.g. TPO-075 Northern Pacific Sea Stars)",
+      "https://toefl.zhan.com / https://top.zhan.com (小站托福 — full TPO writing bank; blocked here)",
+      "https://www.ets.org/s/toefl/free-practice/writing.html (official format reference)"
+    ]
+  },
+  "tasks": [
+    {
+      "tpo": 66,
+      "integrated_writing": {
+        "prompt": "Summarize the points made in the lecture, being sure to explain how they challenge the specific arguments made in the reading passage.",
+        "topic": null,
+        "reading_summary": null,
+        "lecture_summary": null,
+        "prompt_confidence": "verbatim",
+        "body_confidence": "not_retrieved"
+      },
+      "independent_writing": {
+        "type": "agree_disagree",
+        "prompt": "Do you agree or disagree with the following statement? People who develop many different skills are more successful than people who focus on one skill only. Use specific reasons and examples to support your answer.",
+        "prompt_confidence": "verbatim"
+      }
+    },
+    {
+      "tpo": 67,
+      "integrated_writing": {
+        "prompt": "Summarize the points made in the lecture, being sure to explain how they cast doubt on the specific theories mentioned in the reading passage.",
+        "topic": null,
+        "reading_summary": null,
+        "lecture_summary": null,
+        "prompt_confidence": "verbatim",
+        "body_confidence": "not_retrieved"
+      },
+      "independent_writing": {
+        "type": "unknown",
+        "prompt": null,
+        "prompt_confidence": "not_retrieved"
+      }
+    },
+    {
+      "tpo": 68,
+      "integrated_writing": {
+        "prompt": "Summarize the points made in the lecture, being sure to explain how they cast doubt on the specific points made in the reading passage.",
+        "topic": null,
+        "reading_summary": null,
+        "lecture_summary": null,
+        "prompt_confidence": "verbatim",
+        "body_confidence": "not_retrieved"
+      },
+      "independent_writing": {
+        "type": "unknown",
+        "prompt": null,
+        "prompt_confidence": "not_retrieved"
+      }
+    },
+    {
+      "tpo": 69,
+      "integrated_writing": {
+        "prompt": "Summarize the points made in the lecture, being sure to explain how they cast doubt on the specific points made in the reading passage.",
+        "topic": null,
+        "reading_summary": null,
+        "lecture_summary": null,
+        "prompt_confidence": "verbatim",
+        "body_confidence": "not_retrieved"
+      },
+      "independent_writing": {
+        "type": "preference",
+        "prompt": "Would you prefer to take courses taught by professors with whom you have already had other classes during your past years of study, or would you prefer to take courses taught by professors you have not had before? Use specific reasons and examples to support your answer.",
+        "prompt_confidence": "verbatim_partial"
+      }
+    },
+    {
+      "tpo": 70,
+      "integrated_writing": {
+        "prompt": "Summarize the points made in the lecture, being sure to explain how they cast doubt on the specific points made in the reading passage.",
+        "topic": null,
+        "reading_summary": null,
+        "lecture_summary": null,
+        "prompt_confidence": "verbatim",
+        "body_confidence": "not_retrieved"
+      },
+      "independent_writing": {
+        "type": "agree_disagree",
+        "prompt": "Do you agree or disagree with the following statement? It is often not a good thing to move to a new town or country because people lose their old friends. Use specific reasons and examples to support your answer.",
+        "prompt_confidence": "verbatim"
+      }
+    },
+    {
+      "tpo": 71,
+      "integrated_writing": {
+        "prompt": "Summarize the points made in the lecture, being sure to explain how they challenge the specific theories presented in the reading passage.",
+        "topic": null,
+        "reading_summary": null,
+        "lecture_summary": null,
+        "prompt_confidence": "verbatim",
+        "body_confidence": "not_retrieved"
+      },
+      "independent_writing": {
+        "type": "agree_disagree",
+        "prompt": "Do you agree or disagree with the following statement? Grades (marks) encourage students to learn. Use specific reasons and examples to support your answer.",
+        "prompt_confidence": "verbatim"
+      }
+    },
+    {
+      "tpo": 72,
+      "integrated_writing": {
+        "prompt": "Summarize the points made in the lecture, being sure to explain how they challenge the specific theories presented in the reading passage.",
+        "topic": null,
+        "reading_summary": null,
+        "lecture_summary": null,
+        "prompt_confidence": "verbatim",
+        "body_confidence": "not_retrieved"
+      },
+      "independent_writing": {
+        "type": "preference",
+        "prompt": "When a new technological device (such as a smartphone) becomes available, some people buy it right away, while others wait until many people have already adopted it. Which view do you agree with? Use specific reasons and examples to support your answer.",
+        "prompt_confidence": "verbatim"
+      }
+    },
+    {
+      "tpo": 73,
+      "integrated_writing": {
+        "prompt": "Summarize the points made in the lecture, being sure to explain how they cast doubt on the specific solutions proposed in the reading passage.",
+        "topic": null,
+        "reading_summary": null,
+        "lecture_summary": null,
+        "prompt_confidence": "verbatim",
+        "body_confidence": "not_retrieved"
+      },
+      "independent_writing": {
+        "type": "agree_disagree",
+        "prompt": "Do you agree or disagree with the following statement? Taking a lot of time to make an important decision is often viewed as a bad quality for a person to have, but in fact it is a good quality. Use specific reasons and examples to support your answer.",
+        "prompt_confidence": "verbatim_partial"
+      }
+    },
+    {
+      "tpo": 74,
+      "integrated_writing": {
+        "prompt": "Summarize the points made in the lecture, being sure to explain how they challenge the specific arguments presented in the reading passage.",
+        "topic": null,
+        "reading_summary": null,
+        "lecture_summary": null,
+        "prompt_confidence": "verbatim",
+        "body_confidence": "not_retrieved"
+      },
+      "independent_writing": {
+        "type": "agree_disagree",
+        "prompt": "Do you agree or disagree with the following statement? It is difficult for teachers to be both popular (well liked) and effective in helping students learn. Use specific reasons and examples to support your answer.",
+        "prompt_confidence": "verbatim"
+      }
+    },
+    {
+      "tpo": 75,
+      "integrated_writing": {
+        "prompt": "Summarize the points made in the lecture, being sure to explain how they challenge the specific arguments presented in the reading passage.",
+        "topic": "Controlling the invasive Northern Pacific sea star (Asterias amurensis)",
+        "reading_summary": "The Northern Pacific sea star is native to the coasts of Japan, Korea, and China but has recently appeared thousands of kilometers away, where it threatens marine ecosystems. The reading proposes three strategies to control its spread: (1) administer a poison called quicklime (calcium oxide), spread in powdered form over invaded areas of seafloor — it destroys sea stars but is said not to harm commercially important mollusks such as oysters, scallops, and mussels; (2) introduce natural parasites that specifically attack the sea star; and (3) sterilize the ballast water of ships so the larvae are not transported to new regions.",
+        "lecture_summary": "The professor argues that none of the three strategies would be effective. (1) Quicklime would also kill native sea stars, which help maintain local ecosystems; it stays active on the seafloor for a long time, so native sea stars moving back into treated areas would die too. (2) A parasite effective enough to control the invaders would likely also attack native sea star species, and might not be specific to the target. (3) Sterilizing ballast water does not address sea stars that have already established populations, and the invaders can also be transported by other means, so this measure would not stop the ongoing spread.",
+        "prompt_confidence": "verbatim",
+        "body_confidence": "summary"
+      },
+      "independent_writing": {
+        "type": "unknown",
+        "prompt": null,
+        "prompt_confidence": "not_retrieved"
+      }
+    }
+  ]
+}
