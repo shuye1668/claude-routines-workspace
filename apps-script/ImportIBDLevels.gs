@@ -19,6 +19,11 @@
  *   找不到才退回固定位置 U/V/W。實際用到哪幾欄會寫進 Logger 與匯入摘要，
  *   也可以用選單「預覽 IBD 來源欄位」先確認再正式跑。
  *
+ * 【週末不寄信】匯入排在週六，但成功的摘要信週末不寄（只寫 Log 與 toast），
+ *   匯入本身照跑，工作表週末就是最新的。匯入失敗仍會寄信——同步壞掉安靜地過去，
+ *   下一週用到的就是舊價位。兩者分別由 MAIL_SUMMARY_WEEKDAYS_ONLY 與
+ *   MAIL_ERROR_ON_WEEKEND 控制。
+ *
  * 【不會動到的東西】
  *   - F 欄「深度研究進場價」是人工填的，匯入完全不碰。
  *   - CSV 裡沒出現的代號，database 既有資料原樣保留（只會列在摘要裡）。
@@ -57,7 +62,14 @@ const IMPORT_CFG = {
 
   ADD_NEW_CODES: true,     // CSV 有、database 沒有的代號 → 新增一列
   RUN_UPDATE_AFTER: true,  // 匯入完接著跑一次 updateStockPool()
-  MAIL_SUMMARY: true,      // 寄匯入摘要（失敗一定會寄）
+  MAIL_SUMMARY: true,      // 寄匯入摘要
+
+  // 匯入排在週六，但「週末不寄信」：成功的摘要信週末不寄，只寫進 Log 與 toast。
+  // 匯入本身照跑，工作表週末就會是最新的，週一的現價通知信也會用到新價位。
+  MAIL_SUMMARY_WEEKDAYS_ONLY: true,
+  // 失敗信不受上面那條限制：同步壞掉／來源檔找不到如果安靜地過去，
+  // 下週的價位就是舊的還沒人知道。要連失敗也週末靜音就改成 false。
+  MAIL_ERROR_ON_WEEKEND: true,
 
   WEEKLY_DAY: 'SATURDAY',
   WEEKLY_HOUR: 8,
@@ -83,7 +95,13 @@ function importIBDLevels() {
   }
 
   Logger.log(formatImportSummary_(summary));
-  if (IMPORT_CFG.MAIL_SUMMARY) mailImportSummary_(summary);
+  if (IMPORT_CFG.MAIL_SUMMARY) {
+    if (importMailDay_(IMPORT_CFG.MAIL_SUMMARY_WEEKDAYS_ONLY)) {
+      mailImportSummary_(summary);
+    } else {
+      Logger.log('週末不寄匯入摘要信（IMPORT_CFG.MAIL_SUMMARY_WEEKDAYS_ONLY），匯入本身已完成');
+    }
+  }
   toast_(formatImportToast_(summary));
 
   // 鎖已釋放，這時才接著跑現價更新
@@ -529,10 +547,23 @@ function tr_(k, v) {
          '</td><td style="' + td + '">' + v + '</td></tr>';
 }
 
+// 平日判斷。tzDay_() 定義在 StockPool.gs（同一個 Apps Script 專案），
+// 只有在單獨部署這一支、找不到那個函式時才會退回「不限制」。
+function importMailDay_(weekdaysOnly) {
+  if (!weekdaysOnly) return true;
+  if (typeof tzDay_ !== 'function') return true;
+  const dow = tzDay_(new Date());
+  return dow >= 1 && dow <= 5;
+}
+
 function notifyImportError_(err) {
   const msg = (err && err.message) ? err.message : String(err);
   Logger.log('IBD 匯入失敗：' + msg);
   toast_('匯入失敗：' + msg);
+  if (!IMPORT_CFG.MAIL_ERROR_ON_WEEKEND && !importMailDay_(true)) {
+    Logger.log('週末不寄失敗信（IMPORT_CFG.MAIL_ERROR_ON_WEEKEND = false）');
+    return;
+  }
   try {
     MailApp.sendEmail({
       to: CFG.MAIL_TO,

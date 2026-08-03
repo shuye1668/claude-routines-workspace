@@ -29,6 +29,11 @@
  * 【StockPool 分類】B 欄「分類」（績優股 / 配息股）
  *   只用於信件分區小標題：績優股在上、配息股在下，其餘分類接在後面。
  *
+ * 【只在平日寄信】CFG.MAIL_WEEKDAYS_ONLY = true（預設）
+ *   週六、週日不寄通知信；工作表仍會照排程更新，只是不寄信。
+ *   週末沒寄的觸發不會被記成「今天已通知」，下一個平日仍在觸發狀態就會補寄。
+ *   要連週末也寄，把它改成 false。
+ *
  * 首次安裝：
  *   a. 專案設定 → 時區設為 (GMT+08:00) Taipei
  *   b. 執行 setupSheet()    → 寫入 11 欄表頭與格式（含分類下拉選單）
@@ -67,6 +72,11 @@ const CFG = {
 
   MAIL_TO: 'sunbeamichelle@gmail.com',
   MAIL_CC: 'juliahsu13@gmail.com',
+
+  // 只在平日（週一～週五）寄信；週六、週日不寄。
+  // 週末排程仍會更新工作表（現價／狀態／顏色照樣刷新），只是不寄信。
+  // 週末沒寄出的觸發不會被記進「今天已通知」，下一個平日照樣會通知。
+  MAIL_WEEKDAYS_ONLY: true,
 
   // 觸發方向
   OP_DEEP:  '≤',
@@ -121,6 +131,20 @@ const TIERS = [
 function tier_(key) {
   for (let i = 0; i < TIERS.length; i++) if (TIERS[i].key === key) return TIERS[i];
   return null;
+}
+
+// 以「專案時區」的日曆日判斷星期幾（0=日、1=一 … 6=六）。
+// 先用時區格式化成 yyyy-MM-dd 再取星期，避免伺服器時區與專案時區不同而差一天。
+function tzDay_(d) {
+  const p = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd').split('-');
+  return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getDay();
+}
+
+// 今天可不可以寄信：MAIL_WEEKDAYS_ONLY 開著時，週六、週日一律不寄
+function isMailDay_(d) {
+  if (!CFG.MAIL_WEEKDAYS_ONLY) return true;
+  const dow = tzDay_(d || new Date());
+  return dow >= 1 && dow <= 5;
 }
 
 /*** ============ 主流程 ============ ***/
@@ -409,6 +433,13 @@ function doFetch_(items) {
 /*** ============ Email 通知 ============ ***/
 function notifyNewEvents_(events, stamp) {
   if (!events.length) return;
+
+  // 週末不寄信。刻意在寫入「今天已通知」之前就 return：
+  // 週末命中的觸發不會被記成已通知，下一個平日還在觸發狀態就會照樣寄。
+  if (!isMailDay_()) {
+    Logger.log('週末不寄信（CFG.MAIL_WEEKDAYS_ONLY），本次 ' + events.length + ' 筆觸發略過通知');
+    return;
+  }
 
   const props = PropertiesService.getScriptProperties();
   const tz = Session.getScriptTimeZone();
