@@ -311,6 +311,20 @@ function hourStr(bearing){
   if(mm===60){mm=0;hh=(hh+1)%12;} if(hh===0)hh=12;
   return hh+':'+(mm<10?'0':'')+mm;
 }
+/* 整體 vs 核心通膨的背離要看方向：整體高於核心＝能源推升的表面通膨；
+   核心高於整體＝能源把表頭壓低、底層通膨其實還黏著。兩者的政策意涵相反。 */
+function inflDivergence(z,zc){
+  if(!z||zc===null||zc===undefined||isNaN(zc)) return null;
+  const d=z.zi-zc;
+  if(Math.abs(d)<=0.75) return null;
+  return d>0
+    ? {gap:d, txt:'整體高於核心 '+fx(d)+'σ：能源／食品推升的表面通膨，核心未跟上'}
+    : {gap:d, txt:'核心高於整體 '+fx(-d)+'σ：能源壓低表頭，底層通膨仍黏著'};
+}
+function inflDivergenceBadge(z,zc){
+  const v=inflDivergence(z,zc);
+  return v?' <span class="badge b-info">'+v.txt+'</span>':'';
+}
 function phaseOfHour(bearing){
   if(bearing<90)  return '過熱區（12→3 點）';
   if(bearing<180) return '滯脹區（3→6 點）';
@@ -434,7 +448,7 @@ function updateDashboard(){
     (get(row,'轉折狀態','')?'<span class="badge b-warn">轉折 '+get(row,'轉折狀態')+'</span>':'')+
     '<br>分針（3 個月動能）長度 <b>'+fx(mr)+'σ</b>，指向 <b>'+(mb===null?'--':hourStr(mb))+'</b>'+
     '　｜　核心通膨 z <b>'+fx(zc)+'</b>'+
-    ((zc!==null&&z&&Math.abs(zc-z.zi)>0.75)?' <span class="badge b-info">整體 vs 核心背離：能源驅動</span>':'')+
+    inflDivergenceBadge(z,zc)+
     '<br>同一象限已撐過 <b>'+get(row,'同象限資料版本數','—')+'</b> 個總經資料版本'+
     (get(row,'每日警示','')?'<br>⚠️ '+get(row,'每日警示'):'');
 
