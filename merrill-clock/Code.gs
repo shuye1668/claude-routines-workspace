@@ -917,7 +917,7 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/** 前端資料來源。回傳 {rows, cal}；rows 由新到舊。 */
+/** 前端資料來源。回傳 {rows, cal, meta, debug?}；rows 由新到舊。 */
 function getClockData(limit) {
   limit = limit || 500;
   const ss = SpreadsheetApp.openById(sheetId_());
@@ -930,7 +930,46 @@ function getClockData(limit) {
     o['日期'] = r.__date;
     return o;
   }).reverse();
-  return { rows: rows, cal: cal, meta: { z_neutral: Z_NEUTRAL_BAND, z_confirm: Z_CONFIRM, r_max: R_MAX_SIGMA } };
+  var result = { rows: rows, cal: cal, meta: { z_neutral: Z_NEUTRAL_BAND, z_confirm: Z_CONFIRM, r_max: R_MAX_SIGMA } };
+  if (!rows.length) {
+    result.debug = {
+      sheetName: sheet.getName(),
+      lastRow: sheet.getLastRow(),
+      lastCol: sheet.getLastColumn(),
+      headers: parsed.headers.slice(0, 5),
+      dCol: parsed.headers.indexOf('日期'),
+      parsedRows: parsed.rows.length,
+      sheetId: sheetId_()
+    };
+  }
+  return result;
+}
+
+/** 診斷工具：在 Script 編輯器執行，查看試算表讀取狀況。 */
+function diagnose_DataAccess() {
+  var sid = sheetId_();
+  Logger.log('SHEET_ID = ' + sid);
+  var ss = SpreadsheetApp.openById(sid);
+  Logger.log('試算表名稱 = ' + ss.getName());
+  var sheets = ss.getSheets();
+  Logger.log('分頁數量 = ' + sheets.length);
+  sheets.forEach(function(s, i) { Logger.log('  [' + i + '] ' + s.getName() + '  lastRow=' + s.getLastRow() + '  lastCol=' + s.getLastColumn()); });
+  var sheet = sheets[0];
+  var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
+  if (lastRow >= 1 && lastCol >= 1) {
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    Logger.log('標題列 = ' + JSON.stringify(headers));
+    Logger.log('日期欄索引 = ' + headers.indexOf('日期'));
+    if (lastRow > 1) {
+      var sample = sheet.getRange(2, 1, Math.min(3, lastRow - 1), Math.min(5, lastCol)).getValues();
+      Logger.log('前 3 列（前 5 欄）= ' + JSON.stringify(sample));
+    }
+  } else {
+    Logger.log('第一個分頁是空的！');
+  }
+  var parsed = getSheetRows_(sheet);
+  Logger.log('getSheetRows_ 解析到 ' + parsed.rows.length + ' 列');
+  if (parsed.rows.length) Logger.log('最舊 = ' + parsed.rows[0].__date + '　最新 = ' + parsed.rows[parsed.rows.length - 1].__date);
 }
 
 /** 手動重算校準（換窗期或想強制刷新時執行）。 */

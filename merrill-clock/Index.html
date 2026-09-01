@@ -369,7 +369,22 @@ function initDashboard(payload){
   CAL=(payload&&payload.cal)?payload.cal:{gMed:0,gSigma:0.35,infMed:0,infSigma:1.1,coreMed:0,coreSigma:0.9,gMomSigma:0.3,infMomSigma:0.8,years:20};
   META=(payload&&payload.meta)?payload.meta:{z_neutral:0.5,z_confirm:1.0};
   globalData=data||[];
-  if(!globalData.length){ document.getElementById('loading').innerText='試算表沒有資料，請先執行 backfill_History()。'; return; }
+  if(!globalData.length){
+    var msg='試算表沒有資料，請先執行 backfill_History()。';
+    if(payload&&payload.debug){
+      var d=payload.debug;
+      msg+='\n\n診斷資訊：'
+        +'\n　分頁名稱＝'+d.sheetName
+        +'\n　最後一列＝'+d.lastRow+'　最後一欄＝'+d.lastCol
+        +'\n　前 5 欄標題＝'+JSON.stringify(d.headers)
+        +'\n　日期欄索引＝'+d.dCol
+        +'\n　解析到 '+d.parsedRows+' 列'
+        +'\n　SHEET_ID＝'+d.sheetId;
+    }
+    document.getElementById('loading').innerText=msg;
+    document.getElementById('loading').style.whiteSpace='pre-wrap';
+    return;
+  }
   document.getElementById('loading').style.display='none';
   document.getElementById('dashboard').style.display='flex';
 
