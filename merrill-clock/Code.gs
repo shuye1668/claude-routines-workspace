@@ -917,7 +917,12 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/** 前端資料來源。回傳 {rows, cal, meta, debug?}；rows 由新到舊。 */
+/**
+ * 前端資料來源。回傳「JSON 字串」（不是物件）：{rows, cal, meta, debug?}；rows 由新到舊。
+ * 為什麼回傳字串？google.script.run 傳輸「大型巢狀物件」時（每列都帶整段歷史解讀長文字，
+ * ×數百列）容易序列化失敗、靜默把 null 送到瀏覽器，畫面就會誤顯示「沒有資料」。
+ * 字串是 google.script.run 最可靠的回傳型別，前端 JSON.parse 後即可正常使用。
+ */
 function getClockData(limit) {
   limit = limit || 500;
   const ss = SpreadsheetApp.openById(sheetId_());
@@ -942,7 +947,21 @@ function getClockData(limit) {
       sheetId: sheetId_()
     };
   }
-  return result;
+  return JSON.stringify(result);
+}
+
+/** 診斷工具：在 Script 編輯器執行，確認 getClockData 後端有正確回傳資料。 */
+function test_getClockData() {
+  var raw = getClockData(500);
+  Logger.log('回傳型別 = ' + typeof raw + '（應為 string）');
+  Logger.log('回傳長度 = ' + (raw ? raw.length : 'null') + ' 字元');
+  var obj = JSON.parse(raw);
+  Logger.log('rows 筆數 = ' + (obj.rows ? obj.rows.length : 'null'));
+  if (obj.rows && obj.rows.length) {
+    Logger.log('最新一列日期 = ' + obj.rows[0]['日期']);
+    Logger.log('最舊一列日期 = ' + obj.rows[obj.rows.length - 1]['日期']);
+  }
+  Logger.log('cal = ' + JSON.stringify(obj.cal));
 }
 
 /** 診斷工具：在 Script 編輯器執行，查看試算表讀取狀況。 */

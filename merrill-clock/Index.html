@@ -365,6 +365,15 @@ function mkTitle(el,txt){ const t=document.createElementNS(SVGNS,'title'); t.tex
 
 /* ───────── 初始化 ───────── */
 function initDashboard(payload){
+  // getClockData 現在回傳 JSON 字串（避開 google.script.run 傳大型物件會靜默回 null 的雷）。
+  if(typeof payload==='string'){
+    try{ payload=JSON.parse(payload); }
+    catch(e){ document.getElementById('loading').innerText='資料解析失敗：'+e; return; }
+  }
+  if(payload===null||payload===undefined){
+    document.getElementById('loading').innerText='後端沒有回傳資料（google.script.run 回 null）。請在編輯器執行 test_getClockData() 確認後端，並確認已部署最新版本。';
+    return;
+  }
   const data=(payload&&payload.rows)?payload.rows:payload;   // 相容舊版回傳
   CAL=(payload&&payload.cal)?payload.cal:{gMed:0,gSigma:0.35,infMed:0,infSigma:1.1,coreMed:0,coreSigma:0.9,gMomSigma:0.3,infMomSigma:0.8,years:20};
   META=(payload&&payload.meta)?payload.meta:{z_neutral:0.5,z_confirm:1.0};
