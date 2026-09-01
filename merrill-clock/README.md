@@ -212,7 +212,10 @@ FRED ──► Code.gs ──► 試算表（40 欄）──► Index.html 面�
 4. 執行 `backfill_History(3)` 重算歷史（會清空並重寫所有資料列，含「歷史解讀」欄）。
 5. 執行 `run_ExportDigest()`，確認 Google 雲端硬碟出現「美林時鐘 每日摘要」文件。
 6. 重新部署網頁應用程式，開啟面板確認新的鐘面。
-7. 每日觸發器維持指向 `run_MerrillLynchTracker`（週末會自動略過）。
+7. 建立每日觸發器指向 `run_MerrillLynchTracker`，時間設在**台北上午 6–7 點**。
+   FRED 這七條序列全是盤後資料（VIX 收盤、H.15 殖利率曲線、ICE OAS、DFF 隔日發布），
+   台北早上才拿得到完整的前一交易日資料。台北週日與週一會被美東週末防線自動略過——
+   這是對的，因為那兩天本來就沒有新的收盤資料。
 
 > 回填會覆寫「歷史解讀」欄。若你在該欄有手動編輯過的內容，回填前請先備份分頁。
 > 每日執行（`upsertByDate_`）則會沿用既有值，不會洗掉手動欄位。
@@ -221,6 +224,8 @@ FRED ──► Code.gs ──► 試算表（40 欄）──► Index.html 面�
 
 見 [`claude-routine/ROUTINE_PROMPT.md`](claude-routine/ROUTINE_PROMPT.md)。
 排程需要 **Google Drive** 與 **Gmail** 兩個連接器：前者讀摘要文件，後者寄警示信。
+排程時間為**台北週二～週六 08:23**——注意是週二到週六，不是週一到週五，
+原因（FRED 發布節奏與美東星期對齊）寫在該資料夾的 README。
 
 資料來源優先用 Google 文件（不需額外部署）；若想改用 JSON 端點，
 網頁應用程式支援 `?api=digest&token=<API_TOKEN>&days=60`，token 在指令碼屬性裡。
