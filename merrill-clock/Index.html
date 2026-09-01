@@ -5,7 +5,7 @@
   <style>
     :root{
       --bg:#121212; --panel:#1e1e1e; --panel2:#181818; --text:#e0e0e0; --accent:#00e676; --muted:#8b949e;
-      --hour:#ffd54f; --minute:#ff7043; --core:#4dd0e1;
+      --hour:#ffd54f; --minute:#c49080; --core:#4dd0e1;
       --q-overheat:rgba(255,82,82,0.15); --q-stagflation:rgba(171,71,188,0.15);
       --q-recession:rgba(68,138,255,0.15); --q-recovery:rgba(0,230,118,0.15);
     }
@@ -33,7 +33,7 @@
     .keyrow{display:flex;gap:9px;align-items:flex-start;margin-bottom:8px;}
     .swatch{flex:0 0 42px;height:16px;margin-top:2px;border-radius:3px;position:relative;}
     .sw-hour{background:linear-gradient(90deg,var(--hour),#ffe082);}
-    .sw-min{background:linear-gradient(90deg,var(--minute),#ffab91);}
+    .sw-min{background:repeating-linear-gradient(90deg,var(--minute) 0 5px,transparent 5px 9px);}
     .sw-core{background:repeating-linear-gradient(90deg,var(--core) 0 5px,transparent 5px 9px);}
     .sw-trail{background:repeating-linear-gradient(90deg,#90a4ae 0 4px,transparent 4px 8px);}
     .howto b{color:#fff;}
@@ -115,7 +115,7 @@
             （所以中性帶內的轉折只會標「暫定」）。錶面上的虛線圈就是 1σ／2σ／3σ 的尺。
           </div></div>
           <div class="keyrow"><div class="swatch sw-min"></div><div>
-            <b>分針（橘色）＝ 你往哪去。</b>3 個月動能向量，同樣從圓心指出去。
+            <b>分針（暗褐虛線）＝ 你往哪去。</b>3 個月動能向量，同樣從圓心指出去。
             <b>角度</b>＝動能朝向哪個時刻；<b>長度</b>＝轉動有多快（σ／3 個月）。<br>
             分針與時針<b>同向</b> ⇒ 體制正在強化（點往外跑）；<b>垂直</b> ⇒ 正在轉檔；<b>反向</b> ⇒ 回歸中性。
           </div></div>
@@ -580,8 +580,8 @@ function drawClock(idx){
     const len=Math.min(mrr*MOM_PX, R_MAX_PX*0.92);
     const ux=zm.zi/mrr, uy=-zm.zg/mrr;
     const ex=CX+ux*len, ey=CY+uy*len;
-    mkLine(plot,CX,CY,ex,ey,'#ff7043',3,0.95);
-    mkArrowHead(plot,ex,ey,Math.atan2(uy,ux),'#ff7043',9);
+    mkLine(plot,CX,CY,ex,ey,'#c49080',2.5,0.75,'6 4');
+    mkArrowHead(plot,ex,ey,Math.atan2(uy,ux),'#c49080',8);
     const hit=mkCircle(plot,ex,ey,7,'transparent',0);
     mkTitle(hit,'分針（3 個月動能）：'+fx(mrr)+'σ，指向 '+hourStr(bearingOf(zm.zg,zm.zi)));
   }
