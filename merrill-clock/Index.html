@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    :root{
+      --bg:#121212; --panel:#1e1e1e; --panel2:#181818; --text:#e0e0e0; --accent:#00e676; --muted:#8b949e;
+      --hour:#ffd54f; --minute:#c49080; --core:#4dd0e1;
+      --q-overheat:rgba(255,82,82,0.15); --q-stagflation:rgba(171,71,188,0.15);
+      --q-recession:rgba(68,138,255,0.15); --q-recovery:rgba(0,230,118,0.15);
+    }
+    *{box-sizing:border-box;}
+    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);
+         margin:0;padding:18px;display:flex;flex-direction:column;align-items:center;}
+    h2{color:#fff;border-bottom:2px solid var(--accent);padding-bottom:10px;margin:0 0 6px;font-size:20px;}
+    .sub{color:var(--muted);font-size:12px;margin-bottom:16px;text-align:center;}
+    .dashboard{display:flex;gap:24px;max-width:1060px;width:100%;flex-wrap:wrap;justify-content:center;align-items:flex-start;}
+    .clock-container,.data-container{background:var(--panel);padding:18px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.5);}
+    .clock-container{max-width:520px;width:100%;flex:1 1 460px;}
+    .data-container{min-width:290px;flex:1 1 300px;}
+    .controls{margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    select,button{background:#333;color:#fff;border:1px solid #555;padding:7px 11px;border-radius:6px;cursor:pointer;outline:none;font-size:13px;}
+    button:hover{background:#444;border-color:var(--accent);}
+    .btn-key{border-color:var(--hour);}
+
+    /* ── 讀法說明：這是 V4 最重要的新增，指針的長短終於有定義 ── */
+    .howto{background:var(--panel2);border:1px solid #2f2f2f;border-radius:10px;padding:0 12px;margin-bottom:12px;}
+    .howto summary{cursor:pointer;padding:10px 0;color:#fff;font-size:13px;font-weight:600;list-style:none;}
+    .howto summary::-webkit-details-marker{display:none;}
+    .howto summary::before{content:'▸ ';color:var(--accent);}
+    .howto[open] summary::before{content:'▾ ';}
+    .howto .body{padding:2px 0 12px;font-size:12px;line-height:1.75;color:#cfd8dc;}
+    .keyrow{display:flex;gap:9px;align-items:flex-start;margin-bottom:8px;}
+    .swatch{flex:0 0 42px;height:16px;margin-top:2px;border-radius:3px;position:relative;}
+    .sw-hour{background:linear-gradient(90deg,var(--hour),#ffe082);}
+    .sw-min{background:repeating-linear-gradient(90deg,var(--minute) 0 5px,transparent 5px 9px);}
+    .sw-core{background:repeating-linear-gradient(90deg,var(--core) 0 5px,transparent 5px 9px);}
+    .sw-trail{background:repeating-linear-gradient(90deg,#90a4ae 0 4px,transparent 4px 8px);}
+    .howto b{color:#fff;}
+
+    .svg-wrap{width:100%;}
+    svg{width:100%;height:auto;background:#181818;border-radius:50%;box-shadow:inset 0 0 24px rgba(0,0,0,.85);display:block;}
+    .axis{stroke:#4a4a4a;stroke-width:1;}
+    .ring{fill:none;stroke:#3a3a3a;stroke-width:1;stroke-dasharray:3 4;}
+    .ring-lbl{fill:#6b7378;font-size:9px;}
+    .tick{stroke:#5a5a5a;stroke-width:1.5;}
+    .tick-major{stroke:#8b949e;stroke-width:2.5;}
+    .hour-num{fill:#9aa4ab;font-size:12px;font-weight:600;text-anchor:middle;dominant-baseline:middle;}
+    .compass{fill:var(--muted);font-size:10px;}
+    .quadrant-text{fill:#6e7a82;font-size:12px;font-weight:bold;text-anchor:middle;}
+    .quadrant-sub{fill:#5a656c;font-size:9px;text-anchor:middle;}
+    .quadrant-text.active{fill:#fff;}
+    .quadrant-sub.active{fill:#b0bec5;}
+    .threshold{stroke:#ff5252;stroke-width:1;stroke-dasharray:4 3;opacity:.5;}
+    .threshold-text{fill:#ff8a80;font-size:9px;}
+    .neutral-disc{fill:rgba(255,255,255,.055);stroke:#4a4a4a;stroke-width:1;stroke-dasharray:2 3;}
+    .neutral-lbl{fill:#6b7378;font-size:8.5px;text-anchor:middle;}
+
+    /* ── 讀數列 ── */
+    .readout{margin-top:12px;background:var(--panel2);border-radius:10px;padding:11px 13px;border:1px solid #2f2f2f;}
+    .ro-main{font-size:15px;color:#fff;font-weight:600;margin-bottom:5px;}
+    .ro-main .hour{color:var(--hour);font-size:19px;}
+    .ro-main .sig{color:var(--minute);}
+    .ro-line{font-size:12px;color:#b0bec5;line-height:1.7;}
+    .ro-line b{color:#fff;}
+    .badge{display:inline-block;padding:2px 8px;border-radius:11px;font-size:11px;font-weight:600;margin-right:6px;}
+    .b-ok{background:rgba(0,230,118,.16);color:#69f0ae;}
+    .b-warn{background:rgba(255,213,79,.16);color:#ffd54f;}
+    .b-bad{background:rgba(255,82,82,.16);color:#ff8a80;}
+    .b-info{background:rgba(77,208,225,.16);color:#4dd0e1;}
+
+    .note{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6;}
+    .history-note{margin-top:10px;padding:10px 12px;background:var(--panel2);border-left:3px solid var(--accent);border-radius:6px;font-size:12px;line-height:1.65;color:#cfd8dc;}
+    .history-note b{color:#fff;}
+    .shift-line{background:rgba(255,213,79,.12);border-left:3px solid var(--hour);padding:7px 10px;border-radius:5px;margin-bottom:8px;color:#ffe082;font-weight:600;font-size:12px;}
+
+    .section-title{color:#fff;margin:16px 0 8px;font-size:13px;letter-spacing:.5px;border-left:3px solid var(--accent);padding-left:8px;}
+    .metric{margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #2e2e2e;display:flex;justify-content:space-between;gap:12px;font-size:13px;}
+    .metric .label{color:var(--muted);}
+    .metric .value{font-weight:bold;color:var(--accent);text-align:right;}
+    .zbar{height:6px;background:#2a2a2a;border-radius:3px;position:relative;margin:3px 0 9px;}
+    .zbar .mid{position:absolute;left:50%;top:-2px;width:1px;height:10px;background:#555;}
+    .zbar .fill{position:absolute;top:0;height:6px;border-radius:3px;background:var(--accent);}
+    .gauge-track{height:11px;background:linear-gradient(90deg,#00e676 0%,#ffab40 50%,#ff5252 100%);border-radius:6px;position:relative;margin:6px 0 2px;}
+    .gauge-knob{position:absolute;top:-3px;width:4px;height:17px;background:#fff;border-radius:2px;transform:translateX(-50%);}
+    .subbar{display:flex;gap:6px;margin:6px 0 2px;font-size:11px;color:var(--muted);}
+    .subbar div{flex:1;text-align:center;background:#242424;border-radius:5px;padding:4px 2px;}
+    .subbar b{display:block;color:#fff;font-size:13px;}
+
+    .key-scrubber{display:flex;align-items:center;gap:8px;margin:10px 0 2px;padding:8px 10px;background:var(--panel2);border:1px solid #333;border-radius:8px;}
+    .key-scrubber input[type=range]{flex:1;height:5px;accent-color:var(--hour);cursor:pointer;}
+    .scrub-arrow{background:#333;border:1px solid #555;color:#fff;border-radius:6px;padding:4px 11px;cursor:pointer;font-size:14px;line-height:1;}
+    .scrub-arrow:hover{border-color:var(--hour);background:#444;}
+    .scrub-label{font-size:11px;color:var(--muted);min-width:126px;text-align:right;white-space:nowrap;}
+    .loading{color:var(--accent);font-size:17px;margin-top:50px;}
+    .cal-note{font-size:10.5px;color:#6b7378;margin-top:8px;line-height:1.6;}
+  </style>
+</head>
+<body>
+  <h2>🧭 美林投資時鐘 量化動態面板 V4</h2>
+  <div class="sub">指針角度 = 你在循環的哪一點鐘　｜　指針長度 = 離「中性」多遠（單位 σ）＝訊號有多強</div>
+  <div id="loading" class="loading">正在同步核心量化數據…</div>
+
+  <div id="dashboard" class="dashboard" style="display:none;">
+    <!-- ═══ 左：時鐘 ═══ -->
+    <div class="clock-container">
+
+      <details class="howto" id="howto" open>
+        <summary>怎麼看這個時鐘？（指針的長短是什麼意思）</summary>
+        <div class="body">
+          <div class="keyrow"><div class="swatch sw-hour"></div><div>
+            <b>時針（金色）＝ 你在哪。</b>從圓心指出去。<b>角度</b>＝景氣時刻（幾點鐘）；
+            <b>長度</b>＝目前的成長／通膨離「近 20 年常態中位數」有多遠，單位是 <b>σ（標準差）</b>。<br>
+            <span style="color:#ffab91">長 ⇒ 體制明確、訊號強；短 ⇒ 貼在中性帶，任何一個月的雜訊都可能讓象限翻面</span>
+            （所以中性帶內的轉折只會標「暫定」）。錶面上的虛線圈就是 1σ／2σ／3σ 的尺。
+          </div></div>
+          <div class="keyrow"><div class="swatch sw-min"></div><div>
+            <b>分針（暗褐虛線）＝ 你往哪去。</b>3 個月動能向量，同樣從圓心指出去。
+            <b>角度</b>＝動能朝向哪個時刻；<b>長度</b>＝轉動有多快（σ／3 個月）。<br>
+            分針與時針<b>同向</b> ⇒ 體制正在強化（點往外跑）；<b>垂直</b> ⇒ 正在轉檔；<b>反向</b> ⇒ 回歸中性。
+          </div></div>
+          <div class="keyrow"><div class="swatch sw-core"></div><div>
+            <b>核心通膨鬼影（青色虛線）＝ 拿掉油價後的位置。</b>兩支針分很開，代表這波是能源／食品驅動的
+            表面通膨，核心其實沒動——油價衝擊期間最該看的就是這個背離。
+          </div></div>
+          <div class="keyrow"><div class="swatch sw-trail"></div><div>
+            <b>軌跡＝ 最近 18 個「總經資料版本」。</b>總經是月頻，所以軌跡按資料版本取樣（不是按交易日），
+            這樣才看得出時鐘真的在轉。⚡ 標記＝當時發生象限轉折。
+          </div></div>
+          <div style="color:#8b949e;border-top:1px solid #2f2f2f;padding-top:8px;margin-top:4px;">
+            鐘面方位：<b>上＝成長高</b>、<b>右＝通膨高</b>。景氣循環依時鐘<b>順時針</b>輪動：
+            9→12 點 復甦　·　12→3 點 過熱　·　3→6 點 滯脹　·　6→9 點 衰退／再通膨。
+          </div>
+        </div>
+      </details>
+
+      <div class="controls">
+        <label style="font-size:13px;color:var(--muted)">觀測日：</label>
+        <select id="dateSelector" onchange="updateDashboard()"></select>
+        <button onclick="prevDate()" title="前一交易日">◀</button>
+        <button onclick="nextDate()" title="後一交易日">▶</button>
+        <button id="playBtn" onclick="togglePlay()">▶ 播放軌跡</button>
+        <button id="playKeyBtn" class="btn-key" onclick="togglePlayKey()">✦ 重點播放</button>
+      </div>
+
+      <div id="keyScrubber" class="key-scrubber" style="display:none;">
+        <button class="scrub-arrow" onclick="keyStep(-1)" title="上一個重點日">◀</button>
+        <input id="keySlider" type="range" min="0" max="0" value="0" step="1" oninput="keyDrag(this.value)">
+        <button class="scrub-arrow" onclick="keyStep(1)" title="下一個重點日">▶</button>
+        <span id="keyLabel" class="scrub-label">—</span>
+      </div>
+
+      <div class="svg-wrap">
+        <svg id="clock" viewBox="0 0 460 460" xmlns="http://www.w3.org/2000/svg">
+          <!-- 象限（順時針：復甦左上 → 過熱右上 → 滯脹右下 → 衰退左下）-->
+          <path id="q-recovery"    d="M230,230 L52,230  A178,178 0 0 1 230,52  Z" fill="var(--q-recovery)"/>
+          <path id="q-overheat"    d="M230,230 L230,52  A178,178 0 0 1 408,230 Z" fill="var(--q-overheat)"/>
+          <path id="q-stagflation" d="M230,230 L408,230 A178,178 0 0 1 230,408 Z" fill="var(--q-stagflation)"/>
+          <path id="q-recession"   d="M230,230 L230,408 A178,178 0 0 1 52,230  Z" fill="var(--q-recession)"/>
+
+          <!-- σ 尺規：這三個圈就是「指針長度」的單位 -->
+          <circle class="ring" cx="230" cy="230" r="56.67"/>
+          <circle class="ring" cx="230" cy="230" r="113.33"/>
+          <circle class="ring" cx="230" cy="230" r="170"/>
+          <text class="ring-lbl" x="233" y="176">1σ</text>
+          <text class="ring-lbl" x="233" y="119">2σ</text>
+          <text class="ring-lbl" x="233" y="63">3σ</text>
+
+          <!-- 中性帶：指針短於此 ⇒ 訊號脆弱 -->
+          <circle class="neutral-disc" cx="230" cy="230" r="28.33"/>
+          <text class="neutral-lbl" x="230" y="252">中性帶 0.5σ</text>
+
+          <line x1="52" y1="230" x2="408" y2="230" class="axis"/>
+          <line x1="230" y1="52" x2="230" y2="408" class="axis"/>
+          <circle cx="230" cy="230" r="178" fill="none" stroke="#555" stroke-width="2"/>
+
+          <g id="ticks"></g>
+          <g id="hourNums"></g>
+
+          <!-- CFNAI −0.70 衰退線（換算到 z 座標後由 JS 定位） -->
+          <line id="recLine" x1="70" y1="0" x2="390" y2="0" class="threshold" style="display:none"/>
+          <text id="recLineTxt" x="74" y="0" class="threshold-text" style="display:none">CFNAI −0.70 衰退線</text>
+
+          <text x="230" y="16" class="compass" text-anchor="middle">↑ 成長高於常態</text>
+          <text x="230" y="452" class="compass" text-anchor="middle">↓ 成長低於常態</text>
+          <text x="6" y="234" class="compass">通膨 ↓</text>
+          <text x="454" y="234" class="compass" text-anchor="end">通膨 ↑</text>
+
+          <text id="lbl-recovery"    x="122" y="118" class="quadrant-text">復甦 Recovery</text>
+          <text id="sub-recovery"    x="122" y="132" class="quadrant-sub">9 → 12 點</text>
+          <text id="lbl-overheat"    x="338" y="118" class="quadrant-text">過熱 Overheat</text>
+          <text id="sub-overheat"    x="338" y="132" class="quadrant-sub">12 → 3 點</text>
+          <text id="lbl-stagflation" x="338" y="336" class="quadrant-text">滯脹 Stagflation</text>
+          <text id="sub-stagflation" x="338" y="350" class="quadrant-sub">3 → 6 點</text>
+          <text id="lbl-recession"   x="122" y="336" class="quadrant-text">衰退／再通膨</text>
+          <text id="sub-recession"   x="122" y="350" class="quadrant-sub">6 → 9 點</text>
+
+          <g id="plotArea"></g>
+        </svg>
+      </div>
+
+      <div class="readout">
+        <div class="ro-main" id="ro-main">—</div>
+        <div class="ro-line" id="ro-detail">—</div>
+      </div>
+
+      <div id="historyNote" class="history-note" style="display:none;"></div>
+      <div class="cal-note" id="calNote"></div>
+    </div>
+
+    <!-- ═══ 右：數據面板 ═══ -->
+    <div class="data-container">
+      <h3 style="margin:0 0 4px;color:#fff;font-size:16px;">📊 核心數據面板</h3>
+
+      <div class="section-title">① 時鐘讀數</div>
+      <div class="metric"><span class="label">時鐘時刻（你在哪）</span><span class="value" id="val-hour">--</span></div>
+      <div class="metric"><span class="label">指針長度（訊號強度）</span><span class="value" id="val-r">--</span></div>
+      <div class="metric"><span class="label">動能長度／指向</span><span class="value" id="val-mom">--</span></div>
+      <div class="metric"><span class="label">轉動方向</span><span class="value" id="val-rot">--</span></div>
+
+      <div class="section-title">② 週期定位</div>
+      <div class="metric"><span class="label">校準象限（以近 20 年常態）</span><span class="value" id="val-quadc">--</span></div>
+      <div class="metric"><span class="label">方向階段（動能）</span><span class="value" id="val-phase">--</span></div>
+      <div class="metric"><span class="label">水準／方向一致性</span><span class="value" id="val-cons" style="font-size:12px">--</span></div>
+      <div class="metric"><span class="label">原始象限（CFNAI&gt;0 判定）</span><span class="value" id="val-quad" style="color:#78909c">--</span></div>
+
+      <div class="section-title">③ 標準化座標（σ）</div>
+      <div class="metric"><span class="label">成長 z</span><span class="value" id="val-zg">--</span></div>
+      <div class="zbar"><div class="mid"></div><div class="fill" id="bar-zg"></div></div>
+      <div class="metric"><span class="label">通膨 z（整體 CPI）</span><span class="value" id="val-zi">--</span></div>
+      <div class="zbar"><div class="mid"></div><div class="fill" id="bar-zi"></div></div>
+      <div class="metric"><span class="label">通膨 z（核心 CPI）</span><span class="value" id="val-zc" style="color:var(--core)">--</span></div>
+      <div class="zbar"><div class="mid"></div><div class="fill" id="bar-zc" style="background:var(--core)"></div></div>
+      <div class="metric"><span class="label">成長動能 z／通膨動能 z</span><span class="value" id="val-zm">--</span></div>
+
+      <div class="section-title">④ 框架建議（教育用途）</div>
+      <div class="metric"><span class="label">建議資產</span><span class="value" id="val-asset">--</span></div>
+      <div class="metric"><span class="label">建議類股</span><span class="value" id="val-sector" style="font-size:12px;">--</span></div>
+
+      <div class="section-title">⑤ 風險與信用</div>
+      <div class="metric"><span class="label">風險綜合分數</span><span class="value" id="val-risk">--</span></div>
+      <div class="gauge-track"><div class="gauge-knob" id="risk-knob" style="left:50%;"></div></div>
+      <div class="subbar" id="risk-parts"><div>曲線<b>--</b></div><div>信用<b>--</b></div><div>波動<b>--</b></div></div>
+      <div class="note">左 = Risk-On 偏多　·　右 = Risk-Off 偏空</div>
+      <div class="metric" style="margin-top:9px;"><span class="label">衰退警示</span><span class="value" id="val-warn" style="color:#ffab40;font-size:12px">--</span></div>
+      <div class="metric"><span class="label">利差 (10Y-2Y)</span><span class="value" id="val-spread">-- %</span></div>
+      <div class="metric"><span class="label">高收益債 OAS（Δ20d）</span><span class="value" style="color:#ff5252;" id="val-hy">-- %</span></div>
+      <div class="metric"><span class="label">VIX（Δ20d）</span><span class="value" style="color:#ff5252;" id="val-vix">--</span></div>
+
+      <div class="section-title">⑥ 總經原始值</div>
+      <div class="metric"><span class="label">CFNAI-MA3</span><span class="value" id="val-cfnai">--</span></div>
+      <div class="metric"><span class="label">CPI 年增率</span><span class="value" id="val-cpi">-- %</span></div>
+      <div class="metric"><span class="label">核心 CPI 年增率</span><span class="value" id="val-corecpi">-- %</span></div>
+      <div class="metric"><span class="label">有效聯邦基金利率</span><span class="value" id="val-fed">-- %</span></div>
+    </div>
+  </div>
+
+<script>
+const SVGNS='http://www.w3.org/2000/svg';
+const CX=230, CY=230, R_MAX_PX=170, R_MAX_SIGMA=3, PXS=R_MAX_PX/R_MAX_SIGMA;  // 56.67 px / σ
+const MOM_PX=48;              // 分針：1σ 動能 = 48px
+const TRAIL_VINTAGES=18;      // 軌跡取樣：最近 18 個總經資料版本
+let globalData=[], CAL=null, META=null, playTimer=null, keyTimer=null;
+
+google.script.run.withSuccessHandler(initDashboard).withFailureHandler(onFail).getClockData(500);
+function onFail(e){ document.getElementById('loading').innerText='資料載入失敗：'+e; }
+
+/* ───────── 小工具 ───────── */
+function get(row,key,dft){ return (row && row[key]!==undefined && row[key]!=='') ? row[key] : (dft===undefined?'--':dft); }
+function numOf(row,key){ const v=parseFloat(row?row[key]:NaN); return isNaN(v)?null:v; }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function fx(v,n){ return (v===null||v===undefined||isNaN(v))?'--':Number(v).toFixed(n===undefined?2:n); }
+
+/* z 座標：優先用試算表算好的欄位，舊資料則用校準值即時換算（向下相容）。 */
+function zOf(row){
+  let zg=numOf(row,'成長z'), zi=numOf(row,'通膨z');
+  if(zg===null||zi===null){
+    const g=numOf(row,'g分數'), inf=numOf(row,'inf分數');
+    if(g===null||inf===null||!CAL) return null;
+    zg=(g-CAL.gMed)/CAL.gSigma; zi=(inf-CAL.infMed)/CAL.infSigma;
+  }
+  return {zg:zg, zi:zi};
+}
+function zCoreOf(row){
+  let zc=numOf(row,'核心通膨z');
+  if(zc===null){
+    const c=numOf(row,'核心inf分數');
+    if(c===null||!CAL) return null;
+    zc=(c-CAL.coreMed)/CAL.coreSigma;
+  }
+  return zc;
+}
+function zMomOf(row){
+  let zg=numOf(row,'成長動能z'), zi=numOf(row,'通膨動能z');
+  if(zg===null||zi===null){
+    const dg=numOf(row,'成長動能Δ3m'), di=numOf(row,'通膨動能Δ3m');
+    if(dg===null||di===null||!CAL) return null;
+    zg=dg/CAL.gMomSigma; zi=di/CAL.infMomSigma;
+  }
+  return {zg:zg, zi:zi};
+}
+/* z → 螢幕座標。超過 3σ 只在畫面上截斷，數值仍照實顯示（V3 的 clamp 會讓指針說謊）。 */
+function pos(zg,zi){
+  const r=Math.hypot(zg,zi);
+  const k=(r>R_MAX_SIGMA)?(R_MAX_SIGMA/r):1;
+  return {x:CX+zi*k*PXS, y:CY-zg*k*PXS, over:(r>R_MAX_SIGMA), r:r};
+}
+function bearingOf(zg,zi){ return (Math.atan2(zi,zg)*180/Math.PI+360)%360; }
+function hourStr(bearing){
+  const h=bearing/30; let hh=Math.floor(h)%12, mm=Math.round((h-Math.floor(h))*60);
+  if(mm===60){mm=0;hh=(hh+1)%12;} if(hh===0)hh=12;
+  return hh+':'+(mm<10?'0':'')+mm;
+}
+/* 整體 vs 核心通膨的背離要看方向：整體高於核心＝能源推升的表面通膨；
+   核心高於整體＝能源把表頭壓低、底層通膨其實還黏著。兩者的政策意涵相反。 */
+function inflDivergence(z,zc){
+  if(!z||zc===null||zc===undefined||isNaN(zc)) return null;
+  const d=z.zi-zc;
+  if(Math.abs(d)<=0.75) return null;
+  return d>0
+    ? {gap:d, txt:'整體高於核心 '+fx(d)+'σ：能源／食品推升的表面通膨，核心未跟上'}
+    : {gap:d, txt:'核心高於整體 '+fx(-d)+'σ：能源壓低表頭，底層通膨仍黏著'};
+}
+function inflDivergenceBadge(z,zc){
+  const v=inflDivergence(z,zc);
+  return v?' <span class="badge b-info">'+v.txt+'</span>':'';
+}
+function phaseOfHour(bearing){
+  if(bearing<90)  return '過熱區（12→3 點）';
+  if(bearing<180) return '滯脹區（3→6 點）';
+  if(bearing<270) return '衰退／再通膨區（6→9 點）';
+  return '復甦區（9→12 點）';
+}
+
+/* ───────── SVG 基本圖元 ───────── */
+function mkLine(p,x1,y1,x2,y2,stroke,w,op,dash){
+  const l=document.createElementNS(SVGNS,'line');
+  l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+  l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',w);l.setAttribute('opacity',op);
+  if(dash)l.setAttribute('stroke-dasharray',dash);
+  l.setAttribute('stroke-linecap','round');p.appendChild(l);return l;
+}
+function mkCircle(p,cx,cy,r,fill,op,stroke,sw){
+  const c=document.createElementNS(SVGNS,'circle');
+  c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);
+  c.setAttribute('fill',fill);c.setAttribute('opacity',op);
+  if(stroke){c.setAttribute('stroke',stroke);c.setAttribute('stroke-width',sw||1);}
+  p.appendChild(c);return c;
+}
+function mkText(p,x,y,txt,fill,size,anchor){
+  const t=document.createElementNS(SVGNS,'text');
+  t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('fill',fill);
+  t.setAttribute('font-size',size);t.setAttribute('text-anchor',anchor||'middle');
+  t.textContent=txt;p.appendChild(t);return t;
+}
+function mkArrowHead(p,x,y,ang,color,size){
+  const h=size||8, poly=document.createElementNS(SVGNS,'polygon');
+  const pts=[[x,y],
+             [x-h*Math.cos(ang-0.45),y-h*Math.sin(ang-0.45)],
+             [x-h*Math.cos(ang+0.45),y-h*Math.sin(ang+0.45)]];
+  poly.setAttribute('points',pts.map(a=>a.join(',')).join(' '));
+  poly.setAttribute('fill',color);p.appendChild(poly);
+}
+function mkTitle(el,txt){ const t=document.createElementNS(SVGNS,'title'); t.textContent=txt; el.appendChild(t); }
+
+/* ───────── 初始化 ───────── */
+function initDashboard(payload){
+  // getClockData 現在回傳 JSON 字串（避開 google.script.run 傳大型物件會靜默回 null 的雷）。
+  if(typeof payload==='string'){
+    try{ payload=JSON.parse(payload); }
+    catch(e){ document.getElementById('loading').innerText='資料解析失敗：'+e; return; }
+  }
+  if(payload===null||payload===undefined){
+    document.getElementById('loading').innerText='後端沒有回傳資料（google.script.run 回 null）。請在編輯器執行 test_getClockData() 確認後端，並確認已部署最新版本。';
+    return;
+  }
+  const data=(payload&&payload.rows)?payload.rows:payload;   // 相容舊版回傳
+  CAL=(payload&&payload.cal)?payload.cal:{gMed:0,gSigma:0.35,infMed:0,infSigma:1.1,coreMed:0,coreSigma:0.9,gMomSigma:0.3,infMomSigma:0.8,years:20};
+  META=(payload&&payload.meta)?payload.meta:{z_neutral:0.5,z_confirm:1.0};
+  globalData=data||[];
+  if(!globalData.length){
+    var msg='試算表沒有資料，請先執行 backfill_History()。';
+    if(payload&&payload.debug){
+      var d=payload.debug;
+      msg+='\n\n診斷資訊：'
+        +'\n　分頁名稱＝'+d.sheetName
+        +'\n　最後一列＝'+d.lastRow+'　最後一欄＝'+d.lastCol
+        +'\n　前 5 欄標題＝'+JSON.stringify(d.headers)
+        +'\n　日期欄索引＝'+d.dCol
+        +'\n　解析到 '+d.parsedRows+' 列'
+        +'\n　SHEET_ID＝'+d.sheetId;
+    }
+    document.getElementById('loading').innerText=msg;
+    document.getElementById('loading').style.whiteSpace='pre-wrap';
+    return;
+  }
+  document.getElementById('loading').style.display='none';
+  document.getElementById('dashboard').style.display='flex';
+
+  drawDialFurniture();
+  const sel=document.getElementById('dateSelector');
+  globalData.forEach(function(row,i){
+    const o=document.createElement('option'); o.value=i; o.textContent=row['日期']; sel.appendChild(o);
+  });
+  document.getElementById('calNote').innerHTML=
+    '校準基準：近 '+CAL.years+' 年穩健統計（中位數 ± 1.4826×MAD）｜成長中位數 '+fx(CAL.gMed)+
+    '、σ '+fx(CAL.gSigma)+'　·　通膨中位數 '+fx(CAL.infMed)+'、σ '+fx(CAL.infSigma)+
+    '。<br>σ 就是指針長度的單位——這也是為什麼 CFNAI 長年為負卻不該一律判成「滯脹」：'+
+    '中性點是近 20 年的常態，不是 1967 年以來的趨勢線。';
+  updateDashboard();
+}
+
+/* 錶面上的刻度與時標，讓它真的像一個鐘 */
+function drawDialFurniture(){
+  const tg=document.getElementById('ticks'), ng=document.getElementById('hourNums');
+  tg.innerHTML=''; ng.innerHTML='';
+  for(let m=0;m<60;m++){
+    const b=m*6, rad=b*Math.PI/180, major=(m%5===0);
+    const r1=major?166:172, r2=178;
+    const l=mkLine(tg,CX+r1*Math.sin(rad),CY-r1*Math.cos(rad),CX+r2*Math.sin(rad),CY-r2*Math.cos(rad),
+                   major?'#8b949e':'#4a4a4a',major?2:1,major?0.9:0.5);
+    l.setAttribute('class',major?'tick-major':'tick');
+  }
+  for(let h=1;h<=12;h++){
+    const b=h*30, rad=b*Math.PI/180, r=196;
+    mkText(ng,CX+r*Math.sin(rad),CY-r*Math.cos(rad)+4,String(h),'#9aa4ab',12).setAttribute('class','hour-num');
+  }
+  // CFNAI −0.70 衰退線換算到 z 空間
+  if(CAL&&CAL.gSigma){
+    const zLine=(-0.70-CAL.gMed)/CAL.gSigma;
+    if(Math.abs(zLine)<=R_MAX_SIGMA){
+      const y=CY-zLine*PXS;
+      const ln=document.getElementById('recLine'), tx=document.getElementById('recLineTxt');
+      ln.setAttribute('y1',y); ln.setAttribute('y2',y); ln.style.display='';
+      tx.setAttribute('y',y-4); tx.style.display='';
+      tx.textContent='CFNAI −0.70 衰退線（'+fx(zLine,1)+'σ）';
+    }
+  }
+}
+
+/* ───────── 主更新 ───────── */
+function updateDashboard(){
+  const idx=parseInt(document.getElementById('dateSelector').value);
+  const row=globalData[idx];
+  const z=zOf(row), zm=zMomOf(row), zc=zCoreOf(row);
+
+  /* ── 時鐘讀數 ── */
+  let bearing=null,r=null,mb=null,mr=null;
+  if(z){ bearing=bearingOf(z.zg,z.zi); r=Math.hypot(z.zg,z.zi); }
+  if(zm && (zm.zg!==0||zm.zi!==0)){ mb=bearingOf(zm.zg,zm.zi); mr=Math.hypot(zm.zg,zm.zi); }
+
+  const strength = (r===null)?'--':(r<META.z_neutral?'弱（中性帶・易翻轉）':(r<META.z_confirm?'偏弱':(r<2?'明確':'極端')));
+  const sBadge   = (r===null)?'':(r<META.z_neutral?'b-bad':(r<META.z_confirm?'b-warn':'b-ok'));
+
+  // 轉動方向：時針與分針的外積決定順/逆時針（美林輪動是順時針）
+  let rot='--', rotBadge='b-info';
+  if(z&&zm&&mr>0.05&&r>0.05){
+    const cross=z.zg*zm.zi - z.zi*zm.zg;
+    let dAng=Math.abs(((mb-bearing)+540)%360-180);
+    if(dAng<45)        { rot='體制強化（往外走）'; rotBadge='b-warn'; }
+    else if(dAng>135)  { rot='回歸中性（往內收）'; rotBadge='b-info'; }
+    else               { rot=(cross>0?'順時針輪動（符合美林循環）':'逆時針（反常・多為外生衝擊）'); rotBadge=(cross>0?'b-ok':'b-bad'); }
+  }
+
+  document.getElementById('ro-main').innerHTML=
+    '🕐 <span class="hour">'+(bearing===null?'--':hourStr(bearing))+'</span>　'+
+    (bearing===null?'':phaseOfHour(bearing))+
+    '　｜　指針長度 <span class="sig">'+fx(r)+'σ</span>';
+  document.getElementById('ro-detail').innerHTML=
+    '<span class="badge '+sBadge+'">訊號 '+strength+'</span>'+
+    '<span class="badge '+rotBadge+'">'+rot+'</span>'+
+    (get(row,'轉折狀態','')?'<span class="badge b-warn">轉折 '+get(row,'轉折狀態')+'</span>':'')+
+    '<br>分針（3 個月動能）長度 <b>'+fx(mr)+'σ</b>，指向 <b>'+(mb===null?'--':hourStr(mb))+'</b>'+
+    '　｜　核心通膨 z <b>'+fx(zc)+'</b>'+
+    inflDivergenceBadge(z,zc)+
+    '<br>同一象限已撐過 <b>'+get(row,'同象限資料版本數','—')+'</b> 個總經資料版本'+
+    (get(row,'每日警示','')?'<br>⚠️ '+get(row,'每日警示'):'');
+
+  /* ── 右側面板 ── */
+  const S=(id,v)=>{document.getElementById(id).innerText=v;};
+  S('val-hour', (bearing===null?'--':hourStr(bearing)+'（'+fx(bearing,0)+'°）'));
+  S('val-r', fx(r)+'σ ・'+strength);
+  S('val-mom', fx(mr)+'σ → '+(mb===null?'--':hourStr(mb)));
+  S('val-rot', rot);
+  S('val-quadc', get(row,'校準象限', get(row,'景氣象限')));
+  S('val-phase', get(row,'週期階段'));
+  S('val-cons', get(row,'水準方向一致性'));
+  S('val-quad', get(row,'景氣象限'));
+  S('val-zg', fx(z?z.zg:null)); S('val-zi', fx(z?z.zi:null)); S('val-zc', fx(zc));
+  S('val-zm', fx(zm?zm.zg:null)+' ／ '+fx(zm?zm.zi:null));
+  S('val-asset', get(row,'建議資產')); S('val-sector', get(row,'建議類股'));
+  S('val-warn', get(row,'衰退警示','正常'));
+  S('val-spread', get(row,'利差(10Y-2Y)')+' %');
+  S('val-hy', get(row,'高收益債利差')+' %（'+get(row,'信用動能Δ20d','—')+'）');
+  S('val-vix', get(row,'VIX恐慌指數')+'（'+get(row,'VIX動能Δ20d','—')+'）');
+  S('val-cfnai', get(row,'CFNAI_MA3'));
+  S('val-cpi', get(row,'CPI年增率')+' %');
+  S('val-corecpi', get(row,'核心CPI年增率')+' %');
+  S('val-fed', get(row,'有效聯邦基金利率')+' %');
+
+  zbar('bar-zg', z?z.zg:null); zbar('bar-zi', z?z.zi:null); zbar('bar-zc', zc);
+
+  const riskRaw=String(get(row,'風險分數','50')), riskNum=parseInt(riskRaw,10);
+  S('val-risk', isNaN(riskNum)?'--':riskRaw);
+  if(!isNaN(riskNum)) document.getElementById('risk-knob').style.left=clamp(riskNum,0,100)+'%';
+  renderRiskParts(get(row,'風險分項',''));
+
+  highlightQuadrant(z);
+
+  /* ── 轉折 / 時期解讀 ── */
+  const hist=get(row,'歷史解讀',''), shift=get(row,'象限轉折','');
+  const hn=document.getElementById('historyNote');
+  let html='';
+  if(shift&&shift!=='--') html+='<div class="shift-line">'+shift+'</div>';
+  if(hist&&hist!=='--') html+='<b>📌 '+get(row,'日期')+' 時期解讀</b><br>'+hist;
+  hn.innerHTML=html; hn.style.display=html?'block':'none';
+
+  drawClock(idx);
+}
+
+function zbar(id,v){
+  const el=document.getElementById(id);
+  if(v===null||v===undefined||isNaN(v)){ el.style.width='0'; return; }
+  const w=clamp(Math.abs(v)/R_MAX_SIGMA,0,1)*50;
+  el.style.width=w+'%';
+  el.style.left=(v>=0?50:50-w)+'%';
+}
+function renderRiskParts(s){
+  const box=document.getElementById('risk-parts');
+  const m={曲線:'--',信用:'--',波動:'--'};
+  String(s).split('／').forEach(function(p){
+    const g=p.match(/^(曲線|信用|波動)(\d+)$/); if(g) m[g[1]]=g[2];
+  });
+  box.innerHTML=['曲線','信用','波動'].map(function(k){return '<div>'+k+'<b>'+m[k]+'</b></div>';}).join('');
+}
+function highlightQuadrant(z){
+  const map={'q-overheat':'overheat','q-stagflation':'stagflation','q-recession':'recession','q-recovery':'recovery'};
+  Object.keys(map).forEach(function(qid){
+    document.getElementById(qid).setAttribute('stroke','none');
+    document.getElementById('lbl-'+map[qid]).classList.remove('active');
+    document.getElementById('sub-'+map[qid]).classList.remove('active');
+  });
+  if(!z) return;
+  let q;
+  if(z.zg>0&&z.zi>0) q='q-overheat';
+  else if(z.zg<=0&&z.zi>0) q='q-stagflation';
+  else if(z.zg<=0&&z.zi<=0) q='q-recession';
+  else q='q-recovery';
+  const el=document.getElementById(q);
+  el.setAttribute('stroke','#fff'); el.setAttribute('stroke-width','2');
+  document.getElementById('lbl-'+map[q]).classList.add('active');
+  document.getElementById('sub-'+map[q]).classList.add('active');
+}
+
+/* 軌跡按「總經資料版本」取樣（月頻），而不是按交易日——否則 12 個點全疊在一起。 */
+function vintageTrail(idx,maxN){
+  const out=[], seen={};
+  for(let k=idx;k<globalData.length&&out.length<maxN;k++){
+    const r=globalData[k];
+    const key=String(r['CFNAI_MA3'])+'|'+String(r['CPI年增率']);
+    if(seen[key]) continue; seen[key]=true;
+    const z=zOf(r); if(!z) continue;
+    out.push({z:z,row:r,date:r['日期']});
+  }
+  return out;   // 由新到舊
+}
+
+function drawClock(idx){
+  const plot=document.getElementById('plotArea'); plot.innerHTML='';
+  const row=globalData[idx];
+  const z=zOf(row); if(!z) return;
+  const trail=vintageTrail(idx,TRAIL_VINTAGES).reverse();   // 改為由舊到新
+
+  /* 軌跡線 + 節點 */
+  for(let i=1;i<trail.length;i++){
+    const a=pos(trail[i-1].z.zg,trail[i-1].z.zi), b=pos(trail[i].z.zg,trail[i].z.zi);
+    mkLine(plot,a.x,a.y,b.x,b.y,'#90a4ae',1.8,0.12+0.55*(i/Math.max(1,trail.length-1)),'4 3');
+  }
+  for(let i=0;i<trail.length-1;i++){
+    const p=pos(trail[i].z.zg,trail[i].z.zi);
+    const op=0.18+0.5*(i/Math.max(1,trail.length-1));
+    const c=mkCircle(plot,p.x,p.y,3.2,'#90a4ae',op);
+    mkTitle(c,trail[i].date+'　'+(trail[i].row['時鐘時刻']||'')+'　'+fx(p.r)+'σ　'+(trail[i].row['校準象限']||''));
+    if(String(trail[i].row['象限轉折']||'').trim()!==''){
+      mkText(plot,p.x,p.y-7,'⚡','#ffd54f',10);
+    }
+  }
+
+  const cur=pos(z.zg,z.zi);
+
+  /* 核心通膨鬼影針 */
+  const zc=zCoreOf(row);
+  if(zc!==null){
+    const pc=pos(z.zg,zc);
+    mkLine(plot,CX,CY,pc.x,pc.y,'#4dd0e1',1.6,0.55,'5 4');
+    const cc=mkCircle(plot,pc.x,pc.y,3.6,'#4dd0e1',0.75);
+    mkTitle(cc,'核心通膨位置（拿掉能源/食品）：核心通膨 z '+fx(zc));
+  }
+
+  /* 分針：3 個月動能，長度 ∝ 動能大小 */
+  const zm=zMomOf(row);
+  if(zm&&(Math.abs(zm.zg)>0.02||Math.abs(zm.zi)>0.02)){
+    const mrr=Math.hypot(zm.zg,zm.zi);
+    const len=Math.min(mrr*MOM_PX, R_MAX_PX*0.92);
+    const ux=zm.zi/mrr, uy=-zm.zg/mrr;
+    const ex=CX+ux*len, ey=CY+uy*len;
+    mkLine(plot,CX,CY,ex,ey,'#c49080',2.5,0.75,'6 4');
+    mkArrowHead(plot,ex,ey,Math.atan2(uy,ux),'#c49080',8);
+    const hit=mkCircle(plot,ex,ey,7,'transparent',0);
+    mkTitle(hit,'分針（3 個月動能）：'+fx(mrr)+'σ，指向 '+hourStr(bearingOf(zm.zg,zm.zi)));
+  }
+
+  /* 時針：長度 = 離中性多少 σ */
+  mkLine(plot,CX,CY,cur.x,cur.y,'#ffd54f',5,1);
+  mkCircle(plot,CX,CY,5,'#ffd54f',1,'#212121',2);
+  const tip=mkCircle(plot,cur.x,cur.y,8,'#ffffff',1,'#212121',2);
+  mkTitle(tip,row['日期']+'　'+hourStr(bearingOf(z.zg,z.zi))+'　指針長度 '+fx(cur.r)+'σ');
+
+  /* 超出 3σ：不假裝、直接標出來（V3 的 clamp 會讓指針說謊） */
+  if(cur.over){
+    const ang=Math.atan2(cur.y-CY,cur.x-CX);
+    mkArrowHead(plot,cur.x+9*Math.cos(ang),cur.y+9*Math.sin(ang),ang,'#ff5252',10);
+    mkText(plot,cur.x+22*Math.cos(ang),cur.y+22*Math.sin(ang)+3,fx(cur.r,1)+'σ','#ff8a80',10);
+  }
+}
+
+/* ───────── 播放控制 ───────── */
+function prevDate(){const s=document.getElementById('dateSelector');if(s.selectedIndex<s.options.length-1){s.selectedIndex++;updateDashboard();}}
+function nextDate(){const s=document.getElementById('dateSelector');if(s.selectedIndex>0){s.selectedIndex--;updateDashboard();}}
+
+let keyList=[], keyPos=0;
+function showScrubber(b){ document.getElementById('keyScrubber').style.display=b?'flex':'none'; }
+function buildKeys(){ keyList=keyIndices(); document.getElementById('keySlider').max=Math.max(0,keyList.length-1); }
+function goKey(p){
+  if(!keyList.length) return;
+  keyPos=clamp(p,0,keyList.length-1);
+  document.getElementById('keySlider').value=keyPos;
+  const s=document.getElementById('dateSelector'); s.selectedIndex=keyList[keyPos]; updateDashboard();
+  const row=globalData[keyList[keyPos]];
+  document.getElementById('keyLabel').textContent=(keyPos+1)+' / '+keyList.length+'　'+(row?row['日期']:'');
+}
+function keyDrag(v){ stopKeyAuto(); goKey(parseInt(v,10)); }
+function keyStep(d){ stopKeyAuto(); goKey(keyPos+d); }
+function stopPlay(){ if(playTimer){clearInterval(playTimer);playTimer=null;document.getElementById('playBtn').textContent='▶ 播放軌跡';} }
+function stopKeyAuto(){ if(keyTimer){clearInterval(keyTimer);keyTimer=null;document.getElementById('playKeyBtn').textContent='✦ 重點播放';} }
+function exitKeyMode(){ stopKeyAuto(); showScrubber(false); }
+
+function togglePlay(){
+  const btn=document.getElementById('playBtn');
+  if(playTimer){stopPlay();return;}
+  exitKeyMode();
+  const s=document.getElementById('dateSelector');
+  s.selectedIndex=Math.min(s.options.length-1,s.selectedIndex+40);
+  updateDashboard(); btn.textContent='⏸ 暫停';
+  playTimer=setInterval(function(){
+    if(s.selectedIndex<=0){stopPlay();return;}
+    s.selectedIndex--; updateDashboard();
+  },120);
+}
+/* 重點日：象限/階段/時期改變、有轉折、或指針明顯位移 */
+function keyIndices(){
+  const n=globalData.length, keys=[], DISP=0.35;   // 0.35σ
+  for(let i=n-1;i>=0;i--){
+    const row=globalData[i], prev=globalData[i+1];
+    let key=(i===n-1||i===0);
+    if(prev){
+      if(get(row,'校準象限',get(row,'景氣象限'))!==get(prev,'校準象限',get(prev,'景氣象限'))) key=true;
+      if(row['週期階段']!==prev['週期階段']) key=true;
+      if(get(row,'歷史解讀')!==get(prev,'歷史解讀')) key=true;
+      if(String(get(row,'象限轉折','')).trim()!=='') key=true;
+      const a=zOf(row), b=zOf(prev);
+      if(a&&b&&Math.hypot(a.zg-b.zg,a.zi-b.zi)>DISP) key=true;
+    }
+    if(key) keys.push(i);
+  }
+  return keys;
+}
+function togglePlayKey(){
+  const btn=document.getElementById('playKeyBtn');
+  if(keyTimer){ stopKeyAuto(); return; }
+  stopPlay();
+  if(document.getElementById('keyScrubber').style.display==='none'||!keyList.length){
+    buildKeys(); if(!keyList.length) return;
+    showScrubber(true); goKey(0);
+  }
+  btn.textContent='⏸ 暫停（重點 '+keyList.length+' 日）';
+  keyTimer=setInterval(function(){
+    if(keyPos>=keyList.length-1){ stopKeyAuto(); return; }
+    goKey(keyPos+1);
+  },1400);
+}
+</script>
+</body>
+</html>
