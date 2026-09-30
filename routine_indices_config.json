@@ -1,0 +1,70 @@
+{
+  "_comment": "美股 Top1 深度分析 routine 的唯一「各指數差異來源」。改這裡＋改母版後跑 python3 build_routines.py 重新生成四支。priors 為前置指數（依 run_order 由小到大），Step 0 重疊檢查對 priors 逐一比對，任一命中即重疊。",
+  "version": "v2.5",
+  "indices": [
+    {
+      "index": "SPX",
+      "cn": "標普 500（S&P 500）",
+      "run_order": 1,
+      "priors": [],
+      "role_focus": "涵蓋全市場、產業最分散，是四指數中「市場整體」的代表。成分廣達約 500 檔，單一總經事件難以只推升一檔，故 Top1 通常是**個股專屬催化**（財報爆發、被併購、重大合約）或**當日最強次族群的載體股**。重點：分辨這根漲幅是個股專屬事件（可深挖）還是族群輪動的載體（要外推到族群、非個股）——標普榜的 Top1 最常被誤讀成「大盤帶動」，其實多為個股或次族群事件。",
+      "allblack_note": "",
+      "wh_search": "`S&P 500 biggest gainer {trade_date}` / `SPX top gainer today {trade_date}`（來源：CNBC、Reuters、MarketWatch、Barchart、Investing 的**收盤後**報導）",
+      "abbrev_list": "BOM、ASP、TAM、DSO、FCF",
+      "sector_search": "`{產業關鍵字} sector news {trade_date}` → 族群共振",
+      "crossboard_example": "（實例：某檔在 SPX 漲第一，若同時出現在 NDX／SOX／INDU 並同向，歸因升級為跨指數成立；若僅 SPX 獨強，較可能是個股專屬事件）",
+      "sector_label": "所屬產業",
+      "sector_var": "sector",
+      "proper_nouns": "Ticker、Fed、CPI、EPS、guidance",
+      "step0_note": ""
+    },
+    {
+      "index": "NDX",
+      "cn": "Nasdaq-100",
+      "run_order": 2,
+      "priors": ["SPX"],
+      "role_focus": "科技與成長權重極高、對利率與久期最敏感。Top1 常是財報或 AI 敘事驅動的高倍數名。重點：該檔的漲幅有多少來自本益比擴張、多少來自已兌現獲利——這是本指數最容易被誤讀的地方。",
+      "allblack_note": "",
+      "wh_search": "`Nasdaq 100 biggest gainer {trade_date}` / `NDX top gainer {trade_date}`（來源：CNBC、Reuters、MarketWatch、Barchart、Investing 的**收盤後**報導）",
+      "abbrev_list": "BOM、ASP、TAM、DSO、FCF",
+      "sector_search": "`{產業關鍵字} sector news {trade_date}` → 族群共振",
+      "crossboard_example": "（實例：某日 AAPL 在 INDU 漲第一，直接解釋了 SOX 榜上 Apple RF 供應商 SWKS／QRVO 為何是僅有的兩檔紅盤）",
+      "sector_label": "所屬產業",
+      "sector_var": "sector",
+      "proper_nouns": "Ticker、Fed、CPI、EPS、guidance",
+      "step0_note": "> RUN_ORDER=2（NDX）：前置指數為 SPX。NDX 與 SPX 成分高度重疊，本步驟命中機率高，務必確實執行。"
+    },
+    {
+      "index": "SOX",
+      "cn": "費城半導體（PHLX Semiconductor）",
+      "run_order": 3,
+      "priors": ["SPX", "NDX"],
+      "role_focus": "純半導體、窄成分（約 30 檔），高度景氣循環，對記憶體／邏輯週期、資本支出（capex）、單一大客戶集中度（Apple、NVDA 資料中心）與中國出口管制最敏感。成分少、個股權重高，單一檔財報或指引就能牽動整條產業鏈與全指數。Top1 常是財報、客戶訂單、設備資本支出或 AI 需求敘事驅動。重點：該檔的漲幅是來自真實的訂單／出貨／ASP 數據，還是來自「AI 需求外推」的本益比擴張——半導體是全市場最容易把景氣循環反彈誤讀成結構性成長的地方。另因成分窄，「全榜皆黑仍有 Top1」（跌最少）發生頻率高於其他指數，務必先過全榜皆黑判定。",
+      "allblack_note": "\n\n> SOX 成分窄、齊漲齊跌特性強，全榜皆黑發生頻率高於其他指數（例：半導體整體回檔日，Rank 1 Gainer 常仍為負值）。此判定為本指數高頻分支，務必每日確實檢查 Rank 1 的 Pct Change 正負號。",
+      "wh_search": "`PHLX Semiconductor Index biggest gainer {trade_date}` / `SOX index top gainer {trade_date}` / `semiconductor stocks biggest gainer {trade_date}`（來源：CNBC、Reuters、MarketWatch、Barchart、Investing 的**收盤後**報導）",
+      "abbrev_list": "BOM、ASP、TAM、DSO、FCF、HBM、CoWoS",
+      "sector_search": "`semiconductor sector news {trade_date}` / `{子產業：memory/foundry/equipment} news {trade_date}` → 族群共振（半導體高度同鏈，此源解釋力特別高）",
+      "crossboard_example": "（實例：某日 AAPL 在 INDU 漲第一，直接解釋了 SOX 榜上 Apple RF 供應商 SWKS／QRVO 為何是僅有的兩檔紅盤；某日 NVDA 在 NDX 漲第一，常直接解釋 SOX 上 CoWoS／HBM 供應鏈同向）",
+      "sector_label": "所屬子產業（IC 設計／晶圓代工／設備／記憶體／類比／封測）",
+      "sector_var": "sub_sector",
+      "proper_nouns": "Ticker、Fed、CPI、EPS、guidance、HBM、CoWoS",
+      "step0_note": "> RUN_ORDER=3（SOX）：前置指數為 SPX 與 NDX。SOX 龍頭（NVDA、AVGO、AMD 等）本身也是 SPX／NDX 權值股，當日若由龍頭領漲，命中重疊機率高；但 SOX 亦常由 SPX／NDX 未列前段的中小型半導體股領漲（成分窄、權重集中所致），此時不重疊、須做深度分析。務必**兩張前置榜都比對**。"
+    },
+    {
+      "index": "INDU",
+      "cn": "道瓊工業（Dow Jones Industrial Average）",
+      "run_order": 4,
+      "priors": ["SPX", "NDX", "SOX"],
+      "role_focus": "僅 30 檔、**價格加權**（高價成分股影響力最大），偏大型價值與傳產藍籌，科技權重低於其他三指數。Top1 常是單一成分股財報、股息／回購、或景氣循環（工業、金融、醫療）事件；因價格加權，高價成分股的個股新聞影響尤其被放大。重點：分辨這根漲幅是**個股基本面事件**，還是**價格加權下高價股的機械性放大**；道瓊 Top1 亦常只是 SPX 當日強勢股的重疊，須確實比對前置榜。",
+      "allblack_note": "\n\n> 道瓊僅 30 檔、成分窄，全榜皆黑（Rank 1 仍為負值）亦時有發生，務必檢查 Rank 1 的 Pct Change 正負號。",
+      "wh_search": "`Dow Jones biggest gainer {trade_date}` / `Dow 30 top gainer today {trade_date}`（來源：CNBC、Reuters、MarketWatch、Barchart、Investing 的**收盤後**報導）",
+      "abbrev_list": "BOM、ASP、TAM、DSO、FCF",
+      "sector_search": "`{產業關鍵字} sector news {trade_date}` → 族群共振",
+      "crossboard_example": "（實例：某成分股在 INDU 漲第一，若同一檔亦是 SPX Rank 1，多屬大盤／族群重疊；若僅 INDU 獨強，較可能是價格加權放大或個股專屬事件）",
+      "sector_label": "所屬產業",
+      "sector_var": "sector",
+      "proper_nouns": "Ticker、Fed、CPI、EPS、guidance",
+      "step0_note": "> RUN_ORDER=4（INDU）：前置指數為 SPX、NDX、SOX 三張。道瓊成分多為大型藍籌，與 SPX 重疊度最高；若當日由大盤級權值股領漲，命中機率高。三張前置榜都要比對。"
+    }
+  ]
+}
